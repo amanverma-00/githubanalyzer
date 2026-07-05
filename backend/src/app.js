@@ -14,23 +14,6 @@ app.use(express.urlencoded({ extended: true }));
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/github', githubRoutes);
 
-// Welcome / API Index
-app.get('/', (_req, res) => {
-  res.json({
-    success: true,
-    message: 'Welcome to the GitHub Profile Analyzer API!',
-    documentation: 'Use the endpoints below to interact with the service.',
-    endpoints: {
-      health: 'GET /health',
-      analyze: 'POST /api/github/analyze/:username',
-      listProfiles: 'GET /api/github/profiles',
-      getProfile: 'GET /api/github/profiles/:username',
-      refreshProfile: 'GET /api/github/profiles/:username/refresh',
-      deleteProfile: 'DELETE /api/github/profiles/:username',
-    },
-  });
-});
-
 // Health check
 app.get('/health', (_req, res) => {
   res.json({
