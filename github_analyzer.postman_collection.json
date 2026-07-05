@@ -1,0 +1,209 @@
+{
+  "info": {
+    "name": "GitHub Profile Analyzer API",
+    "_postman_id": "github-profile-analyzer-v1",
+    "description": "A collection of all endpoints for the GitHub Profile Analyzer API.\n\n**Setup:**\n1. Set the `base_url` variable to your server URL (default: `http://localhost:3000`)\n2. Change the `username` variable to any valid GitHub username\n\n**Workflow:**\n1. Use **Analyze Profile** first to fetch from GitHub and store in MySQL\n2. Use **Get Profile** to retrieve from DB\n3. Use **Refresh Profile** to re-fetch latest data from GitHub\n4. Use **List Profiles** to see all stored profiles\n5. Use **Delete Profile** to remove a profile",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL of the API server"
+    },
+    {
+      "key": "username",
+      "value": "torvalds",
+      "type": "string",
+      "description": "GitHub username to analyze"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the server is running and how long it has been up."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"status\": \"ok\",\n  \"uptime\": 42.5,\n  \"timestamp\": \"2024-01-01T00:00:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Analyze GitHub Profile",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/github/analyze/{{username}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "github", "analyze", "{{username}}"]
+        },
+        "description": "Fetch the GitHub user's public profile and all public repositories, compute derived insights (top languages, total stars, forks, most-starred repo, account age), then store or update the result in MySQL.\n\n**Returns 201 on success.**\n\nIf the profile already exists in the DB it will be updated (upsert)."
+      },
+      "response": [
+        {
+          "name": "201 Created — Profile analyzed and stored",
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Profile for \\\"torvalds\\\" analyzed and stored successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"torvalds\",\n    \"name\": \"Linus Torvalds\",\n    \"bio\": \"Just a simple coder :)\",\n    \"avatar_url\": \"https://avatars.githubusercontent.com/u/1024025?v=4\",\n    \"profile_url\": \"https://github.com/torvalds\",\n    \"company\": \"Linux Foundation\",\n    \"location\": \"Portland, OR\",\n    \"blog\": \"\",\n    \"email\": null,\n    \"twitter_username\": null,\n    \"public_repos\": 8,\n    \"public_gists\": 0,\n    \"followers\": 240000,\n    \"following\": 0,\n    \"top_languages\": [\"C\", \"Perl\", \"Shell\"],\n    \"most_starred_repo\": \"torvalds/linux\",\n    \"total_stars\": 195000,\n    \"total_forks\": 58000,\n    \"account_age_days\": 5200,\n    \"is_hireable\": null,\n    \"analyzed_at\": \"2024-01-01T00:00:00.000Z\",\n    \"updated_at\": \"2024-01-01T00:00:00.000Z\"\n  }\n}"
+        },
+        {
+          "name": "404 Not Found — GitHub user does not exist",
+          "status": "Not Found",
+          "code": 404,
+          "body": "{\n  \"success\": false,\n  \"message\": \"GitHub user \\\"nonexistentuser123456\\\" not found\"\n}"
+        },
+        {
+          "name": "400 Bad Request — Invalid username format",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Invalid GitHub username. Must be 1-39 characters, alphanumeric or hyphens, and cannot start or end with a hyphen.\"\n}"
+        },
+        {
+          "name": "429 Too Many Requests — GitHub rate limit exceeded",
+          "status": "Too Many Requests",
+          "code": 429,
+          "body": "{\n  \"success\": false,\n  \"message\": \"GitHub API rate limit exceeded. Add a GITHUB_TOKEN to your .env to increase the limit.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "List All Analyzed Profiles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/github/profiles?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "github", "profiles"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number (default: 1)"
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Items per page (default: 10, max: 100)"
+            },
+            {
+              "key": "search",
+              "value": "",
+              "description": "Filter by username or display name (optional)",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Returns a paginated list of all GitHub profiles that have been analyzed and stored in the database.\n\n**Query parameters:**\n- `page` — page number (default: 1)\n- `limit` — items per page (default: 10, max: 100)\n- `search` — filter by username or display name"
+      },
+      "response": [
+        {
+          "name": "200 OK — Paginated list of profiles",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"username\": \"torvalds\",\n      \"name\": \"Linus Torvalds\",\n      \"public_repos\": 8,\n      \"followers\": 240000,\n      \"top_languages\": [\"C\", \"Perl\", \"Shell\"],\n      \"total_stars\": 195000,\n      \"analyzed_at\": \"2024-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"totalPages\": 1,\n    \"hasNext\": false,\n    \"hasPrev\": false\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Single Profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/github/profiles/{{username}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "github", "profiles", "{{username}}"]
+        },
+        "description": "Retrieves a previously analyzed profile from the MySQL database.\n\nDoes **not** make a GitHub API call — returns only what is stored in the DB.\nTo get fresh data, use the **Refresh Profile** endpoint."
+      },
+      "response": [
+        {
+          "name": "200 OK — Profile found",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"torvalds\",\n    \"name\": \"Linus Torvalds\",\n    \"bio\": \"Just a simple coder :)\",\n    \"public_repos\": 8,\n    \"followers\": 240000,\n    \"top_languages\": [\"C\", \"Perl\", \"Shell\"],\n    \"total_stars\": 195000,\n    \"total_forks\": 58000,\n    \"account_age_days\": 5200,\n    \"analyzed_at\": \"2024-01-01T00:00:00.000Z\"\n  }\n}"
+        },
+        {
+          "name": "404 Not Found — Profile not in DB",
+          "status": "Not Found",
+          "code": 404,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Profile for \\\"torvalds\\\" not found. Use POST /api/github/analyze/torvalds to analyze it first.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Refresh Profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/github/profiles/{{username}}/refresh",
+          "host": ["{{base_url}}"],
+          "path": ["api", "github", "profiles", "{{username}}", "refresh"]
+        },
+        "description": "Re-fetches the latest data from GitHub and updates the stored profile in MySQL.\n\nThe profile must already exist in the DB (analyze it first). Use this to get updated follower counts, new repos, etc."
+      },
+      "response": [
+        {
+          "name": "200 OK — Profile refreshed",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Profile for \\\"torvalds\\\" refreshed successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"torvalds\",\n    \"followers\": 241000,\n    \"updated_at\": \"2024-06-01T12:00:00.000Z\"\n  }\n}"
+        },
+        {
+          "name": "404 Not Found — Profile not in DB",
+          "status": "Not Found",
+          "code": 404,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Profile for \\\"torvalds\\\" has not been analyzed yet. Use POST /api/github/analyze/torvalds first.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete Profile",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/github/profiles/{{username}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "github", "profiles", "{{username}}"]
+        },
+        "description": "Permanently removes a stored profile from the MySQL database."
+      },
+      "response": [
+        {
+          "name": "200 OK — Profile deleted",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Profile for \\\"torvalds\\\" deleted successfully\",\n  \"data\": null\n}"
+        },
+        {
+          "name": "404 Not Found — Profile not in DB",
+          "status": "Not Found",
+          "code": 404,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Profile for \\\"torvalds\\\" not found\"\n}"
+        }
+      ]
+    }
+  ]
+}
